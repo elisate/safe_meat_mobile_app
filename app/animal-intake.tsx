@@ -1,3 +1,4 @@
+import { ComplianceStatusBar } from '@/components/ui/ComplianceStatusBar';
 import { SafeMeatButton } from '@/components/ui/SafeMeatButton';
 import { SafeMeatCard } from '@/components/ui/SafeMeatCard';
 import { SafeMeatHeader } from '@/components/ui/SafeMeatHeader';
@@ -29,25 +30,36 @@ export default function AnimalIntakeScreen() {
         quantity: '',
         vehicle: '',
         driver: '',
-        healthCert: '',
+        certDetails: '', // Renamed from healthCert
+        certExpiry: '', // Renamed from healthCertExpiry, removed default
     });
 
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = () => {
-        if (!form.supplier || !form.quantity) {
-            Alert.alert('Error', 'Please fill in required fields (Supplier & Quantity)');
+        if (!form.supplier || !form.quantity || !form.certDetails) { // Updated validation
+            Alert.alert('Missing Info', 'Please fill in mandatory fields.'); // Updated message
+            return;
+        }
+
+        // ── Backend Compliance Rule Mirroring ──
+        const expiryDate = new Date(form.certExpiry); // Updated state name
+        const today = new Date('2026-03-06'); // System date as per prompt metadata
+
+        if (expiryDate < today) {
+            Alert.alert(
+                'Compliance Blocked', // Updated title
+                'Animal health certificate has expired. Slaughter is legally prohibited.', // Updated message
+                [{ text: 'Notify Inspector', style: 'destructive' }] // Updated button
+            );
             return;
         }
 
         setLoading(true);
         setTimeout(() => {
             setLoading(false);
-            Alert.alert(
-                'Success',
-                'Animal intake recorded successfully. Backend validation pending.',
-                [{ text: 'OK', onPress: () => router.back() }]
-            );
+            Alert.alert('Intake Recorded', 'Animals registered and awaiting inspection.'); // Updated message
+            router.push('/(tabs)?role=operator'); // Updated navigation
         }, 1500);
     };
 
@@ -59,7 +71,17 @@ export default function AnimalIntakeScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1 }}
             >
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                    style={styles.container}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <ComplianceStatusBar
+                        status="compliant"
+                        message="Compliance Check Enabled"
+                        subMessage="Automated health certificate validation active"
+                    />
+                    <Text style={[styles.title, { color: theme.text }]}>Animal Intake</Text>
 
                     <SafeMeatCard>
                         <Text style={[styles.sectionTitle, { color: theme.primary }]}>Source Details</Text>
@@ -67,60 +89,65 @@ export default function AnimalIntakeScreen() {
                         <SafeMeatInput
                             label="Supplier Name *"
                             placeholder="e.g. ABC Livestock"
+                            icon="business" // Added icon
                             value={form.supplier}
                             onChangeText={(v) => setForm({ ...form, supplier: v })}
                         />
 
                         <SafeMeatInput
                             label="Farm Origin"
-                            placeholder="e.g. Green Valley Farm"
+                            placeholder="e.g. Musanze District"
+                            icon="pin"
                             value={form.farmOrigin}
                             onChangeText={(v) => setForm({ ...form, farmOrigin: v })}
                         />
-
-                        <View style={styles.row}>
-                            <View style={{ flex: 1, marginRight: 8 }}>
-                                <SafeMeatInput
-                                    label="Species"
-                                    placeholder="e.g. Bovine"
-                                    value={form.species}
-                                    onChangeText={(v) => setForm({ ...form, species: v })}
-                                />
-                            </View>
-                            <View style={{ flex: 1, marginLeft: 8 }}>
-                                <SafeMeatInput
-                                    label="Quantity *"
-                                    placeholder="0"
-                                    keyboardType="numeric"
-                                    value={form.quantity}
-                                    onChangeText={(v) => setForm({ ...form, quantity: v })}
-                                />
-                            </View>
-                        </View>
+                        <SafeMeatInput
+                            label="Animal Species"
+                            placeholder="e.g. Bovine (Cattle)"
+                            icon="bug"
+                            value={form.species}
+                            onChangeText={(v) => setForm({ ...form, species: v })}
+                        />
+                        <SafeMeatInput
+                            label="Quantity"
+                            placeholder="e.g. 12"
+                            icon="list"
+                            keyboardType="numeric"
+                            value={form.quantity}
+                            onChangeText={(v) => setForm({ ...form, quantity: v })}
+                        />
                     </SafeMeatCard>
 
-                    <SafeMeatCard variant="glass">
-                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Logistics & Health</Text>
+                    <View style={{ height: 20 }} />
 
+                    <SafeMeatCard>
                         <SafeMeatInput
                             label="Vehicle Plate"
-                            placeholder="e.g. RAD 123 A"
+                            placeholder="e.g. RAE 123 A"
+                            icon="car"
                             value={form.vehicle}
                             onChangeText={(v) => setForm({ ...form, vehicle: v })}
                         />
-
                         <SafeMeatInput
                             label="Driver Name"
                             placeholder="e.g. John Doe"
+                            icon="person"
                             value={form.driver}
                             onChangeText={(v) => setForm({ ...form, driver: v })}
                         />
-
                         <SafeMeatInput
-                            label="Health Certificate #"
-                            placeholder="CERT-XXXX-XXXX"
-                            value={form.healthCert}
-                            onChangeText={(v) => setForm({ ...form, healthCert: v })}
+                            label="Health Cert Details"
+                            placeholder="e.g. CERT-2024-9981"
+                            icon="document"
+                            value={form.certDetails}
+                            onChangeText={(v) => setForm({ ...form, certDetails: v })}
+                        />
+                        <SafeMeatInput
+                            label="Health Cert Expire Date"
+                            placeholder="e.g. 2026-03-30"
+                            icon="calendar"
+                            value={form.certExpiry}
+                            onChangeText={(v) => setForm({ ...form, certExpiry: v })}
                         />
                     </SafeMeatCard>
 
@@ -141,14 +168,21 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        padding: 24,
+        padding: 20,
+        paddingBottom: 40,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: '900',
+        marginBottom: 20,
+        letterSpacing: -0.5,
     },
     sectionTitle: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '800',
-        marginBottom: 24,
         textTransform: 'uppercase',
-        letterSpacing: 1.5,
+        letterSpacing: 1,
+        marginBottom: 16,
     },
     row: {
         flexDirection: 'row',

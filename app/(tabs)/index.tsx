@@ -191,7 +191,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* Compliance Health */}
-        <SafeMeatCard variant="glass" style={styles.flowCard}>
+        {/* <SafeMeatCard variant="glass" style={styles.flowCard}>
           <View style={styles.flowHeader}>
             <View style={[styles.flowIconWrap, { backgroundColor: '#10B981' + '20' }]}>
               <Ionicons name="shield-checkmark" size={20} color="#10B981" />
@@ -205,7 +205,7 @@ export default function DashboardScreen() {
           <Text style={[styles.flowDesc, { color: theme.muted }]}>
             Operations 94% compliant. No safety breaches in last 24h. All logs synced with backend.
           </Text>
-        </SafeMeatCard>
+        </SafeMeatCard> */}
       </ScrollView>
     </SafeAreaView>
   );

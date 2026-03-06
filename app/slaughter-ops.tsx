@@ -1,10 +1,11 @@
+import { ComplianceStatusBar } from '@/components/ui/ComplianceStatusBar';
 import { SafeMeatButton } from '@/components/ui/SafeMeatButton';
 import { SafeMeatCard } from '@/components/ui/SafeMeatCard';
 import { SafeMeatHeader } from '@/components/ui/SafeMeatHeader';
 import { SafeMeatInput } from '@/components/ui/SafeMeatInput';
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
@@ -17,27 +18,44 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SlaughterOpsScreen() {
+    const { role = 'inspector' } = useLocalSearchParams<{ role: string }>();
     const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
 
+    const isInspector = role === 'inspector';
+    const isOperator = role === 'operator';
     const [step, setStep] = useState(1); // 1: Session, 2: Ante-Mortem, 3: Execution
-    const [anteForm, setAnteForm] = useState({ examined: '', approved: '', rejected: '', notes: '' });
+    const [anteForm, setAnteForm] = useState({ examined: '50', approved: '48', rejected: '2', notes: 'Visible defects on 2 units.' });
     const [execForm, setExecForm] = useState({ count: '', time: new Date().toLocaleTimeString() });
 
     const handleAnteSubmit = () => {
-        if (parseInt(anteForm.approved) === 0) {
-            Alert.alert('Compliance Alert', 'Slaughter cannot proceed if 0 animals are approved.');
+        const approvedCount = parseInt(anteForm.approved);
+        if (isNaN(approvedCount) || approvedCount === 0) {
+            Alert.alert(
+                'Compliance Block',
+                'Critical Rule: Slaughter cannot proceed if zero animals are approved during Ante-Mortem inspection.'
+            );
             return;
         }
-        setStep(3);
+
+        if (isInspector) {
+            Alert.alert(
+                'Ante-Mortem Complete',
+                'Animal health check recorded. Operational team can now proceed with slaughter execution.',
+                [{ text: 'Return Home', onPress: () => router.push(`/(tabs)?role=${role}`) }]
+            );
+        } else {
+            setStep(3);
+        }
     };
 
     const handleExecSubmit = () => {
+        const batchCode = `BTCH-RE-990-${Math.floor(100 + Math.random() * 900)}`;
         Alert.alert(
-            'Success',
-            'Slaughter execution recorded. Batch code will be auto-generated.',
-            [{ text: 'OK', onPress: () => router.push('/batch-cert') }]
+            'Slaughter Execution Confirmed',
+            `Batch ${batchCode} has been automatically created.\n\nTime: ${execForm.time}\nCount: ${execForm.count}`,
+            [{ text: 'View Batch Details', onPress: () => router.push(`/batch-cert?role=${role}&batchCode=${batchCode}`) }]
         );
     };
 
@@ -46,6 +64,17 @@ export default function SlaughterOpsScreen() {
             <SafeMeatHeader title="Slaughter Operations" showBack />
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
+                {/* ── Compliance Intelligence ── */}
+                <View style={styles.complianceHeader}>
+                    <View style={styles.complianceBadge}>
+                        <Ionicons name="shield-checkmark" size={12} color="#FFF" />
+                        <Text style={styles.complianceBadgeText}>INSPECTOR COMPLIANCE MODE</Text>
+                    </View>
+                    <Text style={[styles.complianceStatus, { color: theme.muted }]}>
+                        Stage: {step === 1 ? 'Session Review' : step === 2 ? 'Ante-Mortem' : 'Execution Review'}
+                    </Text>
+                </View>
+
                 {/* Step Indicator */}
                 <View style={styles.stepper}>
                     {[1, 2, 3].map((s) => (
@@ -60,10 +89,15 @@ export default function SlaughterOpsScreen() {
                         </View>
                     ))}
                 </View>
+                <ComplianceStatusBar
+                    status={step === 1 ? 'pending' : 'compliant'}
+                    message={isInspector ? 'Inspector Safety Mode' : 'Operational Protocol Active'}
+                    subMessage={step === 1 ? 'Awaiting session verification' : 'Pre-slaughter data validated'}
+                />
 
                 {step === 1 && (
                     <View>
-                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Assigned Session</Text>
+                        <Text style={[styles.title, { color: theme.text }]}>Today's Sessions</Text>
                         <SafeMeatCard>
                             <View style={styles.sessionHeader}>
                                 <Text style={[styles.sessionCode, { color: theme.primary }]}>SS-2024-001</Text>
@@ -90,44 +124,47 @@ export default function SlaughterOpsScreen() {
 
                 {step === 2 && (
                     <View>
-                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Ante-Mortem Inspection</Text>
-                        <SafeMeatInput
-                            label="Number Examined"
-                            placeholder="0"
-                            keyboardType="numeric"
-                            value={anteForm.examined}
-                            onChangeText={(v) => setAnteForm({ ...anteForm, examined: v })}
-                        />
-                        <View style={styles.row}>
-                            <View style={{ flex: 1, marginRight: 8 }}>
-                                <SafeMeatInput
-                                    label="Approved"
-                                    placeholder="0"
-                                    keyboardType="numeric"
-                                    value={anteForm.approved}
-                                    onChangeText={(v) => setAnteForm({ ...anteForm, approved: v })}
-                                />
+                        <Text style={[styles.title, { color: theme.text }]}>Ante-Mortem Inspection</Text>
+                        <SafeMeatCard>
+                            <SafeMeatInput
+                                label="Animals Examined"
+                                placeholder="0"
+                                icon="eye"
+                                keyboardType="numeric"
+                                value={anteForm.examined}
+                                onChangeText={(v) => setAnteForm({ ...anteForm, examined: v })}
+                            />
+                            <View style={styles.row}>
+                                <View style={{ flex: 1, marginRight: 8 }}>
+                                    <SafeMeatInput
+                                        label="Approved"
+                                        placeholder="0"
+                                        icon="checkmark-circle"
+                                        keyboardType="numeric"
+                                        value={anteForm.approved}
+                                        onChangeText={(v) => setAnteForm({ ...anteForm, approved: v })}
+                                    />
+                                </View>
+                                <View style={{ flex: 1, marginLeft: 8 }}>
+                                    <SafeMeatInput
+                                        label="Rejected"
+                                        placeholder="0"
+                                        icon="trash"
+                                        keyboardType="numeric"
+                                        value={anteForm.rejected}
+                                        onChangeText={(v) => setAnteForm({ ...anteForm, rejected: v })}
+                                    />
+                                </View>
                             </View>
-                            <View style={{ flex: 1, marginLeft: 8 }}>
-                                <SafeMeatInput
-                                    label="Rejected"
-                                    placeholder="0"
-                                    keyboardType="numeric"
-                                    value={anteForm.rejected}
-                                    onChangeText={(v) => setAnteForm({ ...anteForm, rejected: v })}
-                                />
-                            </View>
-                        </View>
-                        <SafeMeatInput
-                            label="Inspector Notes"
-                            placeholder="Add observations..."
-                            multiline
-                            numberOfLines={3}
-                            textAlignVertical="top"
-                            style={{ height: 80 }}
-                            value={anteForm.notes}
-                            onChangeText={(v) => setAnteForm({ ...anteForm, notes: v })}
-                        />
+                            <SafeMeatInput
+                                label="Inspector Notes"
+                                placeholder="Any defects or health concerns..."
+                                icon="document-text"
+                                multiline
+                                value={anteForm.notes}
+                                onChangeText={(v) => setAnteForm({ ...anteForm, notes: v })}
+                            />
+                        </SafeMeatCard>
                         <SafeMeatButton
                             title="Confirm & Proceed"
                             onPress={handleAnteSubmit}
@@ -138,25 +175,30 @@ export default function SlaughterOpsScreen() {
 
                 {step === 3 && (
                     <View>
-                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Execution Confirmation</Text>
+                        <Text style={[styles.title, { color: theme.text }]}>Slaughter Execution</Text>
                         <SafeMeatCard style={{ marginBottom: 24 }}>
                             <Text style={[styles.summaryText, { color: theme.muted }]}>
                                 Ante-Mortem: {anteForm.approved} Approved / {anteForm.rejected} Rejected
                             </Text>
                         </SafeMeatCard>
 
-                        <SafeMeatInput
-                            label="Actual Slaughtered Count"
-                            placeholder="0"
-                            keyboardType="numeric"
-                            value={execForm.count}
-                            onChangeText={(v) => setExecForm({ ...execForm, count: v })}
-                        />
-                        <SafeMeatInput
-                            label="Execution Time"
-                            value={execForm.time}
-                            editable={false}
-                        />
+                        <SafeMeatCard>
+                            <SafeMeatInput
+                                label="Actual Slaughtered Count"
+                                placeholder="Enter final number"
+                                icon="list"
+                                keyboardType="numeric"
+                                value={execForm.count}
+                                onChangeText={(v) => setExecForm({ ...execForm, count: v })}
+                            />
+                            <SafeMeatInput
+                                label="Slaughter Time"
+                                placeholder="e.g. 14:30"
+                                icon="time"
+                                value={execForm.time}
+                                onChangeText={(v) => setExecForm({ ...execForm, time: v })}
+                            />
+                        </SafeMeatCard>
                         <SafeMeatButton
                             title="Finalize Execution"
                             onPress={handleExecSubmit}
@@ -174,7 +216,19 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        padding: 24,
+        padding: 20,
+        paddingBottom: 40,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: '900',
+        marginBottom: 20,
+        letterSpacing: -0.5,
+    },
+    subtitle: {
+        fontSize: 13,
+        fontWeight: '600',
+        marginTop: 2,
     },
     stepper: {
         flexDirection: 'row',
@@ -234,5 +288,34 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         textAlign: 'center',
+    },
+    complianceHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+        backgroundColor: 'rgba(16, 185, 129, 0.05)',
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(16, 185, 129, 0.1)',
+    },
+    complianceBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#10B981',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        gap: 4,
+    },
+    complianceBadgeText: {
+        color: '#FFF',
+        fontSize: 8,
+        fontWeight: '900',
+    },
+    complianceStatus: {
+        fontSize: 11,
+        fontWeight: '700',
     },
 });

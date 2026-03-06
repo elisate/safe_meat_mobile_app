@@ -13,12 +13,14 @@ import {
 
 interface SafeMeatInputProps extends TextInputProps {
     label: string;
+    icon?: string;
     error?: string;
     containerStyle?: any;
 }
 
 export const SafeMeatInput: React.FC<SafeMeatInputProps> = ({
     label,
+    icon,
     error,
     containerStyle,
     onFocus,
@@ -56,9 +58,18 @@ export const SafeMeatInput: React.FC<SafeMeatInputProps> = ({
                     {
                         backgroundColor: isFocused ? theme.card : (colorScheme === 'light' ? '#F1F5F9' : '#1E293B'),
                         borderColor: error ? theme.error : (isFocused ? theme.primary : 'transparent'),
-                    }
+                    },
+                    isFocused && styles.inputWrapperFocused
                 ]}
             >
+                {icon && (
+                    <Ionicons
+                        name={icon as any}
+                        size={20}
+                        color={isFocused ? theme.primary : theme.muted}
+                        style={styles.icon}
+                    />
+                )}
                 <TextInput
                     style={[
                         styles.input,
@@ -105,6 +116,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 20,
+    },
+    inputWrapperFocused: {
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        elevation: 4,
+    },
+    icon: {
+        marginRight: 12,
     },
     input: {
         flex: 1,

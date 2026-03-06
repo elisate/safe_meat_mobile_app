@@ -1,8 +1,10 @@
+import { ComplianceStatusBar } from '@/components/ui/ComplianceStatusBar';
 import { SafeMeatButton } from '@/components/ui/SafeMeatButton';
 import { SafeMeatHeader } from '@/components/ui/SafeMeatHeader';
 import { SafeMeatInput } from '@/components/ui/SafeMeatInput';
 import { Colors } from '@/constants/theme';
-import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
@@ -15,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PostMortemScreen() {
+    const { role = 'inspector' } = useLocalSearchParams<{ role: string }>();
     const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
@@ -29,8 +32,13 @@ export default function PostMortemScreen() {
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = () => {
-        if (parseInt(form.approved) === 0) {
-            Alert.alert('Blocking Rule', 'Certificate cannot be issued if approved quantity is 0.');
+        const approvedCount = parseInt(form.approved);
+
+        if (isNaN(approvedCount) || approvedCount === 0) {
+            Alert.alert(
+                'Compliance Block',
+                'Critical Rule: A Meat Safety Certificate cannot be issued if the approved quantity is zero.'
+            );
             return;
         }
 
@@ -38,11 +46,11 @@ export default function PostMortemScreen() {
         setTimeout(() => {
             setLoading(false);
             Alert.alert(
-                'Inspection Complete',
-                'Post-mortem results recorded. Batch is now eligible for certificate issuance.',
-                [{ text: 'View Batch', onPress: () => router.push('/batch-cert') }]
+                'Post-Mortem Complete',
+                'Inspection results recorded. This batch is now eligible for certificate issuance and QR generation.',
+                [{ text: 'Issue Certificate', onPress: () => router.push('/batch-cert') }]
             );
-        }, 1500);
+        }, 1200);
     };
 
     return (
@@ -50,11 +58,28 @@ export default function PostMortemScreen() {
             <SafeMeatHeader title="Post-Mortem Inspection" showBack />
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
+                <View style={{ backgroundColor: 'rgba(16, 185, 129, 0.05)', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.1)', marginBottom: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B981', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, gap: 4 }}>
+                        <Ionicons name="shield-checkmark" size={12} color="#FFF" />
+                        <Text style={{ color: '#FFF', fontSize: 8, fontWeight: '900' }}>INSPECTOR COMPLIANCE MODE</Text>
+                    </View>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: theme.muted }}>
+                        Stage: {role === 'inspector' ? 'Post-Mortem' : 'Ante-Mortem'}
+                    </Text>
+                </View>
+
+                <ComplianceStatusBar
+                    status="compliant"
+                    message="Inspector Compliance Mode"
+                    subMessage="Direct ledger entry enabled"
+                />
+
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>Inspection Results</Text>
 
                 <SafeMeatInput
-                    label="Total Units Examined"
-                    placeholder="0"
+                    label="Animals Examined"
+                    placeholder="e.g. 12"
+                    icon="eye"
                     keyboardType="numeric"
                     value={form.examined}
                     onChangeText={(v) => setForm({ ...form, examined: v })}
@@ -63,8 +88,9 @@ export default function PostMortemScreen() {
                 <View style={styles.row}>
                     <View style={{ flex: 1, marginRight: 8 }}>
                         <SafeMeatInput
-                            label="Approved Qty"
-                            placeholder="0"
+                            label="Approved Quantity"
+                            placeholder="e.g. 12"
+                            icon="checkmark-circle"
                             keyboardType="numeric"
                             value={form.approved}
                             onChangeText={(v) => setForm({ ...form, approved: v })}
@@ -72,8 +98,9 @@ export default function PostMortemScreen() {
                     </View>
                     <View style={{ flex: 1, marginLeft: 8 }}>
                         <SafeMeatInput
-                            label="Condemned Qty"
-                            placeholder="0"
+                            label="Condemned / Rejected"
+                            placeholder="e.g. 0"
+                            icon="trash"
                             keyboardType="numeric"
                             value={form.condemned}
                             onChangeText={(v) => setForm({ ...form, condemned: v })}
@@ -82,8 +109,9 @@ export default function PostMortemScreen() {
                 </View>
 
                 <SafeMeatInput
-                    label="Detailed Notes"
-                    placeholder="Record any defects or issues found..."
+                    label="Inspection Notes"
+                    placeholder="Any specific observations..."
+                    icon="document-text"
                     multiline
                     numberOfLines={4}
                     textAlignVertical="top"

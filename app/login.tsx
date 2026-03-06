@@ -1,11 +1,9 @@
 import { SafeMeatInput } from '@/components/ui/SafeMeatInput';
-import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-    Dimensions,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -16,42 +14,57 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
-
-const ROLES: Array<{ id: string; name: string; icon: any; color: string; description: string }> = [
-    { id: 'inspector', name: 'Inspector', icon: 'shield-checkmark', color: '#059669', description: 'Ante & Post-Mortem' },
-    { id: 'operator', name: 'Operator', icon: 'hammer', color: '#3B82F6', description: 'Slaughter Execution' },
-    { id: 'manager', name: 'Manager', icon: 'cube', color: '#8B5CF6', description: 'Warehouse Storage' },
-    { id: 'driver', name: 'Driver', icon: 'car', color: '#F59E0B', description: 'Transport & Trips' },
-    { id: 'retail', name: 'Retail', icon: 'cart', color: '#EC4899', description: 'Delivery & Receipt' },
-];
-
 export default function LoginScreen() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [selectedRole, setSelectedRole] = useState('inspector');
+    const [email, setEmail] = useState('admin@safemeat.com');
+    const [password, setPassword] = useState('password123');
     const [loading, setLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
-    const theme = Colors['dark']; // login is always dark
 
-    const selected = ROLES.find(r => r.id === selectedRole)!;
+    const BRAND_COLOR = '#059669';
+
+    const quickLogin = (role: string) => {
+        const emailMap: Record<string, string> = {
+            inspector: 'admin@safemeat.com',
+            operator: 'operator@safemeat.com',
+            manager: 'manager@safemeat.com',
+            driver: 'driver@safemeat.com',
+            retail: 'retail@safemeat.com',
+        };
+        setEmail(emailMap[role]);
+        setPassword('password123');
+        setLoading(true);
+        setTimeout(() => {
+            setLoading(false);
+            router.replace(`/(tabs)?role=${role}`);
+        }, 1200);
+    };
 
     const handleLogin = () => {
         setLoading(true);
         setTimeout(() => {
             setLoading(false);
-            router.replace(`/(tabs)?role=${selectedRole}`);
+
+            // Map email to role for testing different dashboards
+            let role = 'inspector'; // Default
+            const emailLower = email.toLowerCase().trim();
+
+            if (emailLower.includes('operator')) role = 'operator';
+            else if (emailLower.includes('manager')) role = 'manager';
+            else if (emailLower.includes('driver')) role = 'driver';
+            else if (emailLower.includes('retail')) role = 'retail';
+            else if (emailLower.includes('admin')) role = 'inspector';
+
+            router.replace(`/(tabs)?role=${role}`);
         }, 1500);
     };
 
     return (
-        <SafeAreaView style={[styles.root, { backgroundColor: '#020617' }]} edges={['top', 'bottom']}>
+        <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
             <StatusBar style="light" />
 
             {/* Decorative background circles */}
-            <View style={[styles.bgCircle, styles.bgCircle1, { backgroundColor: selected.color + '22' }]} />
-            <View style={[styles.bgCircle, styles.bgCircle2, { backgroundColor: selected.color + '14' }]} />
+            <View style={[styles.bgCircle, styles.bgCircle1, { backgroundColor: BRAND_COLOR + '22' }]} />
+            <View style={[styles.bgCircle, styles.bgCircle2, { backgroundColor: BRAND_COLOR + '14' }]} />
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -64,92 +77,38 @@ export default function LoginScreen() {
                 >
                     {/* ── LOGO ── */}
                     <View style={styles.logoSection}>
-                        <View style={[styles.logoBox, { backgroundColor: selected.color }]}>
+                        <View style={[styles.logoBox, { backgroundColor: BRAND_COLOR }]}>
                             <Text style={styles.logoText}>SM</Text>
                         </View>
                         <Text style={styles.appName}>Safe Meat Pro</Text>
                         <Text style={styles.appTagline}>Compliance & Traceability Platform</Text>
                     </View>
 
-                    {/* ── ROLE CARDS ── */}
-                    <Text style={styles.sectionLabel}>Select Your Role</Text>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.roleRow}
-                    >
-                        {ROLES.map((role) => {
-                            const isActive = selectedRole === role.id;
-                            return (
-                                <TouchableOpacity
-                                    key={role.id}
-                                    onPress={() => setSelectedRole(role.id)}
-                                    activeOpacity={0.8}
-                                    style={[
-                                        styles.roleCard,
-                                        {
-                                            backgroundColor: isActive ? role.color : '#0F172A',
-                                            borderColor: isActive ? role.color : '#1E293B',
-                                        },
-                                    ]}
-                                >
-                                    <View style={[styles.roleIconWrap, { backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : role.color + '20' }]}>
-                                        <Ionicons name={role.icon} size={22} color={isActive ? '#FFF' : role.color} />
-                                    </View>
-                                    <Text style={[styles.roleName, { color: isActive ? '#FFF' : '#94A3B8' }]}>
-                                        {role.name}
-                                    </Text>
-                                    <Text style={[styles.roleDesc, { color: isActive ? 'rgba(255,255,255,0.75)' : '#475569' }]}>
-                                        {role.description}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
-
                     {/* ── FORM CARD ── */}
                     <View style={styles.formCard}>
                         <Text style={styles.formTitle}>Sign In</Text>
                         <Text style={styles.formSub}>
-                            Signed in as{' '}
-                            <Text style={[styles.roleHighlight, { color: selected.color }]}>
-                                {selected.name}
-                            </Text>
+                            Welcome back! Enter your details or use Quick Login.
                         </Text>
 
-                        <View style={styles.inputGroup}>
-                            <View style={styles.inputIcon}>
-                                <Ionicons name="mail-outline" size={18} color="#64748B" />
-                            </View>
-                            <SafeMeatInput
-                                label=""
-                                placeholder="Email address"
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                placeholderTextColor="#475569"
-                                style={styles.inputField}
-                            />
-                        </View>
+                        <SafeMeatInput
+                            label="Email Address"
+                            placeholder="e.g. admin@safemeat.com"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            placeholderTextColor="#475569"
+                        />
 
-                        <View style={styles.inputGroup}>
-                            <View style={styles.inputIcon}>
-                                <Ionicons name="lock-closed-outline" size={18} color="#64748B" />
-                            </View>
-                            <SafeMeatInput
-                                label=""
-                                placeholder="Password"
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry={!showPassword}
-                                placeholderTextColor="#475569"
-                                style={styles.inputField}
-                            />
-                            <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={styles.eyeBtn}>
-                                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="#64748B" />
-                            </TouchableOpacity>
-                        </View>
+                        <SafeMeatInput
+                            label="Password"
+                            placeholder="Enter your password"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry
+                            placeholderTextColor="#475569"
+                        />
 
                         <TouchableOpacity style={styles.forgotRow}>
                             <Text style={styles.forgotText}>Forgot password?</Text>
@@ -159,7 +118,7 @@ export default function LoginScreen() {
                             onPress={handleLogin}
                             activeOpacity={0.85}
                             disabled={loading}
-                            style={[styles.signInBtn, { backgroundColor: selected.color, opacity: loading ? 0.8 : 1 }]}
+                            style={[styles.signInBtn, { backgroundColor: BRAND_COLOR, opacity: loading ? 0.8 : 1 }]}
                         >
                             {loading ? (
                                 <Text style={styles.signInText}>Authenticating…</Text>
@@ -170,12 +129,36 @@ export default function LoginScreen() {
                                 </>
                             )}
                         </TouchableOpacity>
+
+                        {/* ── QUICK LOGIN ── */}
+                        <View style={styles.quickLoginSection}>
+                            <Text style={styles.quickLoginTitle}>Quick Test Login</Text>
+                            <View style={styles.quickLoginGrid}>
+                                {[
+                                    { label: 'Insp', role: 'inspector', color: '#059669' },
+                                    { label: 'Oper', role: 'operator', color: '#3B82F6' },
+                                    { label: 'Mgr', role: 'manager', color: '#8B5CF6' },
+                                    { label: 'Driv', role: 'driver', color: '#F59E0B' },
+                                    { label: 'Retl', role: 'retail', color: '#EC4899' },
+                                ].map((item) => (
+                                    <TouchableOpacity
+                                        key={item.role}
+                                        onPress={() => quickLogin(item.role)}
+                                        style={[styles.quickBtn, { borderColor: item.color + '40' }]}
+                                    >
+                                        <Text style={[styles.quickBtnText, { color: item.color }]}>{item.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
                     </View>
 
-                    {/* ── FOOTER ── */}
-                    <Text style={styles.footer}>
-                        Safe Meat Pro v1.0 · Secure Connection · HTTPS
-                    </Text>
+                    {/* ── FOOTER ──
+                    <View style={styles.footerContainer}>
+                        <Text style={styles.footer}>
+                            Safe Meat Pro v1.0 · Secure Connection · HTTPS
+                        </Text>
+                    </View> */}
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -208,7 +191,6 @@ const styles = StyleSheet.create({
         paddingTop: 40,
         paddingBottom: 40,
     },
-    // ── LOGO
     logoSection: {
         alignItems: 'center',
         marginBottom: 40,
@@ -245,46 +227,6 @@ const styles = StyleSheet.create({
         marginTop: 6,
         letterSpacing: 0.2,
     },
-    // ── ROLE SELECTOR
-    sectionLabel: {
-        color: '#64748B',
-        fontSize: 11,
-        fontWeight: '800',
-        letterSpacing: 1.5,
-        textTransform: 'uppercase',
-        marginBottom: 14,
-    },
-    roleRow: {
-        gap: 12,
-        paddingRight: 24,
-        marginBottom: 32,
-    },
-    roleCard: {
-        width: 120,
-        borderRadius: 20,
-        borderWidth: 1.5,
-        padding: 16,
-        gap: 8,
-    },
-    roleIconWrap: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    roleName: {
-        fontSize: 14,
-        fontWeight: '800',
-        letterSpacing: -0.2,
-    },
-    roleDesc: {
-        fontSize: 11,
-        fontWeight: '600',
-        lineHeight: 16,
-    },
-    // ── FORM CARD
     formCard: {
         backgroundColor: '#0F172A',
         borderRadius: 28,
@@ -305,34 +247,6 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '600',
         marginBottom: 28,
-    },
-    roleHighlight: {
-        fontWeight: '800',
-    },
-    inputGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#1E293B',
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#334155',
-        marginBottom: 14,
-        paddingHorizontal: 16,
-        height: 58,
-    },
-    inputIcon: {
-        marginRight: 12,
-    },
-    inputField: {
-        flex: 1,
-        color: '#F8FAFC',
-        fontSize: 15,
-        fontWeight: '600',
-        backgroundColor: 'transparent',
-        borderWidth: 0,
-    },
-    eyeBtn: {
-        padding: 4,
     },
     forgotRow: {
         alignSelf: 'flex-end',
@@ -362,7 +276,42 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         letterSpacing: -0.3,
     },
-    // ── FOOTER
+    quickLoginSection: {
+        marginTop: 32,
+        paddingTop: 24,
+        borderTopWidth: 1,
+        borderTopColor: '#1E293B',
+    },
+    quickLoginTitle: {
+        color: '#475569',
+        fontSize: 11,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        textAlign: 'center',
+        marginBottom: 16,
+    },
+    quickLoginGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    quickBtn: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+    },
+    quickBtnText: {
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    footerContainer: {
+        marginTop: 8,
+        paddingBottom: 20,
+    },
     footer: {
         color: '#1E293B',
         fontSize: 11,
@@ -371,3 +320,5 @@ const styles = StyleSheet.create({
         letterSpacing: 0.3,
     },
 });
+
+

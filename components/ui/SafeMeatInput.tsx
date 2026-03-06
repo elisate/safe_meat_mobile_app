@@ -1,10 +1,12 @@
 import { Colors } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
     StyleSheet,
     Text,
     TextInput,
     TextInputProps,
+    TouchableOpacity,
     useColorScheme,
     View,
 } from 'react-native';
@@ -21,11 +23,13 @@ export const SafeMeatInput: React.FC<SafeMeatInputProps> = ({
     containerStyle,
     onFocus,
     onBlur,
+    secureTextEntry,
     ...props
 }) => {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
     const [isFocused, setIsFocused] = useState(false);
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
     const handleFocus = (e: any) => {
         setIsFocused(true);
@@ -37,25 +41,45 @@ export const SafeMeatInput: React.FC<SafeMeatInputProps> = ({
         onBlur?.(e);
     };
 
+    const togglePasswordVisibility = () => {
+        setIsPasswordVisible(!isPasswordVisible);
+    };
+
     return (
         <View style={[styles.container, containerStyle]}>
             <Text style={[styles.label, { color: isFocused ? theme.primary : theme.muted }]}>
                 {label}
             </Text>
-            <TextInput
+            <View
                 style={[
-                    styles.input,
+                    styles.inputWrapper,
                     {
-                        color: theme.text,
                         backgroundColor: isFocused ? theme.card : (colorScheme === 'light' ? '#F1F5F9' : '#1E293B'),
                         borderColor: error ? theme.error : (isFocused ? theme.primary : 'transparent'),
                     }
                 ]}
-                placeholderTextColor={theme.muted}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-                {...props}
-            />
+            >
+                <TextInput
+                    style={[
+                        styles.input,
+                        { color: theme.text }
+                    ]}
+                    placeholderTextColor={theme.muted}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    secureTextEntry={secureTextEntry && !isPasswordVisible}
+                    {...props}
+                />
+                {secureTextEntry && (
+                    <TouchableOpacity onPress={togglePasswordVisibility} style={styles.toggleButton}>
+                        <Ionicons
+                            name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+                            size={20}
+                            color={theme.muted}
+                        />
+                    </TouchableOpacity>
+                )}
+            </View>
             {error && <Text style={[styles.error, { color: theme.error }]}>{error}</Text>}
         </View>
     );
@@ -74,13 +98,22 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
-    input: {
+    inputWrapper: {
         height: 60,
         borderRadius: 18,
         borderWidth: 2,
+        flexDirection: 'row',
+        alignItems: 'center',
         paddingHorizontal: 20,
+    },
+    input: {
+        flex: 1,
+        height: '100%',
         fontSize: 16,
         fontWeight: '500',
+    },
+    toggleButton: {
+        padding: 4,
     },
     error: {
         fontSize: 12,

@@ -2,6 +2,7 @@ import { SafeMeatCard } from '@/components/ui/SafeMeatCard';
 import { SafeMeatHeader } from '@/components/ui/SafeMeatHeader';
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -114,6 +115,7 @@ export default function DashboardScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   const router = useRouter();
+  const tabBarHeight = useBottomTabBarHeight();
 
   const cfg = DASHBOARD_CONFIG[role as string] || DASHBOARD_CONFIG.inspector;
 
@@ -145,11 +147,14 @@ export default function DashboardScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={[]}>
       <StatusBar barStyle="light-content" backgroundColor="#10B981" />
       <SafeMeatHeader title="Safe Meat Pro" role={role as string} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight + 16 }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Hero */}
         <View style={styles.heroSection}>
           <Text style={[styles.welcomeText, { color: theme.text }]}>{cfg.greeting}</Text>
@@ -213,7 +218,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingTop: 16,
-    paddingBottom: 48,
+    // paddingBottom is set dynamically via tabBarHeight
   },
   heroSection: {
     marginBottom: 20,
